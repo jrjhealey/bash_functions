@@ -135,7 +135,9 @@ cat $1 | awk '!_[$0]++'
 
 # Retain only first header line (concatenate a multifasta)
 fastcat(){
-cat $1 | sed '1!{/^>.*/d;}'
+# Delete all lines beginning with > except the first,
+# then remove all but the first newline to merge seqs
+cat $1 | sed -e '1!{/^>.*/d;}' | sed  ':a;N;$!ba;s/\n//2g'
 }
 
 # 'Genbank formatted' time
