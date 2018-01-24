@@ -137,7 +137,7 @@ cat $1 | awk '!_[$0]++'
 fastcat(){
 # Delete all lines beginning with > except the first,
 # then remove all but the first newline to merge seqs
-cat $1 | sed -e '1!{/^>.*/d;}' | sed  ':a;N;$!ba;s/\n//2g'
+cat $1 | sed -e '1!{/^>.*/d;}' | sed  ':a;N;$!ba;s/\n//2g' | sed  '1!s/.\{80\}/&\n/g'
 }
 
 # 'Genbank formatted' time
