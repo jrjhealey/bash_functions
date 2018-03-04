@@ -40,6 +40,11 @@ mvg (){
   fi
 }
 
+# Pretty print tabular files with unequal length cells
+prettytab(){
+column -t -s $'\t' -n "$1"
+}
+
 # History search
 past (){
    echo "Searching the history for "$1"."
@@ -109,7 +114,7 @@ echo $SSH_CLIENT | awk '{ print $1 }'
 # Quick download
 quickdl(){
 for i in "$@" ; do
- scp -rq -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$i" joehealey@$(client):~/Downloads
+ scp -vrq -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$i" joehealey@$(client):~/Downloads
 done
 }
 
@@ -134,9 +139,8 @@ cat $1 | awk '!_[$0]++'
 }
 
 # Retain only first header line (concatenate a multifasta)
+
 fastcat(){
-# Delete all lines beginning with > except the first,
-# then remove all but the first newline to merge seqs
 cat $1 | sed -e '1!{/^>.*/d;}' | sed  ':a;N;$!ba;s/\n//2g' | sed  '1!s/.\{80\}/&\n/g'
 }
 
@@ -159,4 +163,10 @@ while read line ; do
     ((i++))
   fi
 done < $1
+}
+
+# Subset a fasta in to chunks of N sequences
+# $1 is the file, $2 is the number of sequences per output file
+subsetfa(){
+awk -v n=$2 'BEGIN {n_seq=0;} /^>/ {if(n_seq%n==0){file=sprintf("myseq%d.fa",n_seq);} print >> file; n_seq++; next;} { print >> file; }' < $1
 }
