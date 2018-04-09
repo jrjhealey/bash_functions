@@ -129,7 +129,9 @@ headers(){
 
 # Print all fasta sequence lengths (will print header followed by length) Works for multifa too
 falens(){
-awk '/^>/ {if (seqlen){print seqlen}; print ;seqlen=0;next; } { seqlen += length($0)}END{print seqlen}' $1
+for i in "$@" ; do
+awk '/^>/ {if (seqlen){print seqlen}; print ;seqlen=0;next; } { seqlen += length($0)}END{print seqlen}' "$i"
+done
 }
 
 
@@ -169,4 +171,24 @@ done < $1
 # $1 is the file, $2 is the number of sequences per output file
 subsetfa(){
 awk -v n=$2 'BEGIN {n_seq=0;} /^>/ {if(n_seq%n==0){file=sprintf("myseq%d.fa",n_seq);} print >> file; n_seq++; next;} { print >> file; }' < $1
+}
+
+# Linearise a single or multifasta file to make it easier to work on
+linearisefa(){
+awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' < $1
+}
+
+# Undo a linearisation operation (assume line width 80, specify with $2)
+wrapfa(){
+if [ -z ${2+80} ]; then
+tr "\t" "\n" < $1 | fold -w $2
+fi
+}
+
+# Generate a random fasta formatted sequence of length $1
+# TODO: add some length customisability.
+randomfa(){
+str=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
+echo -e ">RandomSequence_${str}"
+cat /dev/urandom | tr -dc 'ATCG' | fold | head -1
 }
