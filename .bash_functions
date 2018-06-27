@@ -1,7 +1,7 @@
 ### GENERAL PURPOSE FUNCTIONS ###
 
 # Extract any file extension
-extract () {
+Extract () {
    if [ -f $1 ] ; then
        case $1 in
            *.tar.bz2)   tar xvjf $1   ; echo "tar xvjf $1"  ;;
@@ -21,6 +21,17 @@ extract () {
        echo "'$1' is not a valid file!"
    fi
  }
+
+
+# Colourise alternating output lines (useful for demarcating wrapped text)
+colourit(){
+while read line ; do
+ echo -e "\e[1;34m$line"
+ read line
+ echo -e "\e[1;37m$line"
+done
+echo -en "\e[0m"
+}
 
 #copy and go to dir
 cpg (){
@@ -43,6 +54,11 @@ mvg (){
 # Pretty print tabular files with unequal length cells
 prettytab(){
 column -t -s $'\t' -n "$1"
+}
+
+# Latexify (format tables for easy copy-paste in to tex) (only designed for tabulated HHpred results!)
+latexify(){
+cat $1 | cut -d$'\t' -f1,4,6- | sed -r -e 's/\{/\\\{/g' -e 's/\}/\\\}/g' |  sed -r 's/>([[:upper:]]|[[:digit:]])*\_[[:upper:]]{,2}//g' | sed -r 's/([0-9]*?\.?[0-9]*)?e-([0-9]{,4})/\\sn\{\1\}\{-\2}/g' | sed -r 's/\\sn\{\}\{-\}/e-/g' | sed -r 's/([0-9]*\.[0-9]*)A/\1\\AA/g' | sed -r 's/_/\\_/g'
 }
 
 # History search
@@ -191,4 +207,12 @@ randomfa(){
 str=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
 echo -e ">RandomSequence_${str}"
 cat /dev/urandom | tr -dc 'ATCG' | fold | head -1
+}
+
+
+# Find matching substrings with a pattern in file
+# $1 is pattern, $2 is file
+find_subsequence(){
+# An example pattern might be "ATG..AAG" for 2 random bases
+egrep --color -zi "$1" $2
 }
