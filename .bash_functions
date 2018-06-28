@@ -168,19 +168,24 @@ date +"%d-%b-%Y"
 }
 
 # Split a multifasta (gives the sequences arbitrary names though)
-#!/bin/bash
-splitfa(){
-i=1;
-while read line ; do
-  if [ ${line:0:1} == ">" ] ; then
-    header="$line"
-    echo "$header" >> seq"${i}".fasta
-  else
-    seq="$line"
-    echo "$seq" >> seq"${i}".fasta
-    ((i++))
-  fi
-done < $1
+splitfa ()
+{
+    numseqs=$(grep -c ">" $1);
+    numlines=$(wc -l < $1);
+    if (( $numlines > $(( 2*$numseqs )) )); then
+        echo "The fasta file needs to be linearised before this function will work.";
+        return 1;
+    fi;
+    while read line; do
+        if [ ${line:0:1} == ">" ]; then
+            header="$line";
+            filename=$(echo "${line#>}" | tr ' ' '_');
+            echo "$header" >> "${filename}".fasta;
+        else
+            seq="$line";
+            echo "$seq" >> "${header#>}".fasta;
+        fi;
+    done < $1
 }
 
 # Subset a fasta in to chunks of N sequences
