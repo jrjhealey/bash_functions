@@ -4,12 +4,12 @@
 alias copy="ssh joehealey@$(echo $SSH_CLIENT | awk '{ print $1 }') pbcopy"
 
 # Function to return the local machine IP for scp etc.
-client (){
+client(){
 echo $SSH_CLIENT | awk '{ print $1 }'
 }
 
 # Extract any file extension
-Extract () {
+Extract(){
    if [ -f $1 ] ; then
        case $1 in
            *.tar.bz2)   tar xvjf $1   ; echo "tar xvjf $1"  ;;
@@ -30,6 +30,8 @@ Extract () {
    fi
  }
 
+# Run any arbitary command n times:
+# Usage:   $ runx 5 command arg1 arg2 ...
 runx(){
 for ((n=0;n<$1;n++))
  do ${*:2}
@@ -47,7 +49,7 @@ echo -en "\e[0m"
 }
 
 #copy and go to dir
-cpg (){
+cpg(){
   if [ -d "$2" ];then
     cp $1 $2 && cd $2
   else
@@ -56,7 +58,7 @@ cpg (){
 }
 
 #move and go to dir
-mvg (){
+mvg(){
   if [ -d "$2" ];then
     mv $1 $2 && cd $2
   else
@@ -67,7 +69,7 @@ mvg (){
 # Pretty print tabular files with unequal length cells
 prettytab(){
 for i in "$@" ; do
-column -t -s $'\t' -n "$i"
+ column -t -s $'\t' -n "$i"
 done
 }
 # Use this function with find a lot, so make sure the function is available to subshells
@@ -86,14 +88,14 @@ done
 }
 
 # History search
-past (){
+past(){
    echo "Searching the history for "$1"."
     history | grep $1
 }
 
 
 # Folder size
-dush (){
+dush(){
    echo "The size of "$1" is:"
    du -sh $1
 }
