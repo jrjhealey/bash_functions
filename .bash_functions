@@ -1,5 +1,13 @@
 ### GENERAL PURPOSE FUNCTIONS ###
 
+# Alias to copy the remote STDOUT to the clients clipboard (OSX only)
+alias copy="ssh joehealey@$(echo $SSH_CLIENT | awk '{ print $1 }') pbcopy"
+
+# Function to return the local machine IP for scp etc.
+client (){
+echo $SSH_CLIENT | awk '{ print $1 }'
+}
+
 # Extract any file extension
 Extract () {
    if [ -f $1 ] ; then
@@ -22,6 +30,11 @@ Extract () {
    fi
  }
 
+runx(){
+for ((n=0;n<$1;n++))
+ do ${*:2}
+done
+}
 
 # Colourise alternating output lines (useful for demarcating wrapped text)
 colourit(){
@@ -53,12 +66,23 @@ mvg (){
 
 # Pretty print tabular files with unequal length cells
 prettytab(){
-column -t -s $'\t' -n "$1"
+for i in "$@" ; do
+column -t -s $'\t' -n "$i"
+done
 }
+# Use this function with find a lot, so make sure the function is available to subshells
+export -f prettytab
 
 # Latexify (format tables for easy copy-paste in to tex) (only designed for tabulated HHpred results!)
 latexify(){
-cat $1 | cut -d$'\t' -f1,4,6- | sed -r -e 's/\{/\\\{/g' -e 's/\}/\\\}/g' |  sed -r 's/>([[:upper:]]|[[:digit:]])*\_[[:upper:]]{,2}//g' | sed -r 's/([0-9]*?\.?[0-9]*)?e-([0-9]{,4})/\\sn\{\1\}\{-\2}/g' | sed -r 's/\\sn\{\}\{-\}/e-/g' | sed -r 's/([0-9]*\.[0-9]*)A/\1\\AA/g' | sed -r 's/_/\\_/g'
+for i in "$@" ; do
+ cat "$i" | cut -d$'\t' -f1,4,6- | \
+ sed -r -e 's/\{/\\\{/g' -e 's/\}/\\\}/g' | \
+ sed -r 's/>([[:upper:]]|[[:digit:]])*\_[[:upper:]]{,2}//g' | \
+ sed -r 's/([0-9]*?\.?[0-9]*)?e-([0-9]{,4})/\\sn\{\1\}\{-\2}/g' | \
+ sed -r 's/\\sn\{\}\{-\}/e-/g' | sed -r 's/([0-9]*\.[0-9]*)A/\1\\AA\{\}/g' | \
+ sed -r 's/_/\\_/g'
+done
 }
 
 # History search
@@ -122,17 +146,21 @@ for ((i=0;i<"$2";i++)) ; do
 done
 }
 
-# Function to return the local machine IP for scp etc.
-client (){
-echo $SSH_CLIENT | awk '{ print $1 }'
-}
-
 # Quick download
 quickdl(){
 for i in "$@" ; do
  scp -vrq -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$i" joehealey@$(client):~/Downloads
 done
 }
+
+# Collapse all whitespace in a file to a single tab per occurence
+ws2tab(){
+for i in "$@" ; do
+ perl -p -e 's/ +/\t/g' $i
+done
+}
+
+alias tsview="cat $@ | column -s $'\t' -t | less -S"
 
 ### Bioinformatics-y Functions ###
 
@@ -220,4 +248,29 @@ cat /dev/urandom | tr -dc 'ATCG' | fold | head -1
 find_subsequence(){
 # An example pattern might be "ATG..AAG" for 2 random bases
 egrep --color -zi "$1" $2
+}
+
+# Insert a fasta filename as the fasta header (single fasta only!)
+filename2header(){
+for i in "$@" ; do
+ headerstring=$(echo "${i%.*}" | tr ' ' '_') # remove extension and any whitespace
+ sed -r -i "s/^>.*/>$headerstring/g" "$i"
+done
+}
+
+#Get the taxanames for all the leaves in a phylogenetic tree (in the order they appear left -> right
+# (Requires ETE3 be installed in the right pythonpath
+getleaves(){
+ python3 -c 'import sys; from ete3 import Tree; t = Tree(sys.argv[1]);print(t.get_leaf_names());' "$1"
+}
+
+# Get the basic length of a string on the commandline (disregard quotes)
+strlen(){
+str="$1"
+len="${#str}"
+if [ "$len" == 0 ]; then
+ echo "String missing or length 0."
+else
+ echo "$len"
+fi
 }
