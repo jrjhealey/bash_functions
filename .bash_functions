@@ -38,6 +38,13 @@ for ((n=0;n<$1;n++))
 done
 }
 
+# Double strip a bash variable (a bit like basename)
+# Takes the file path off, and one 'layer' of extension
+doublestrip(){
+[[ $1 =~ ^.*/(.*)\. ]] && echo "${BASH_REMATCH[1]}"
+}
+
+
 # Colourise alternating output lines (useful for demarcating wrapped text)
 colourit(){
 while read line ; do
@@ -155,7 +162,7 @@ for i in "$@" ; do
 done
 }
 
-# Collapse all whitespace in a file to a single tab per occurence
+# Collapse all whitespace in a file to a single tab per occurence 
 ws2tab(){
 for i in "$@" ; do
  perl -p -e 's/ +/\t/g' $i
@@ -275,4 +282,9 @@ if [ "$len" == 0 ]; then
 else
  echo "$len"
 fi
+}
+
+# Fastq to fasta
+fq2fa(){
+cat $1 | sed -n '1~4s/^@/>/p;2~4p'
 }
