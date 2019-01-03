@@ -3,6 +3,18 @@
 # Alias to copy the remote STDOUT to the clients clipboard (OSX only)
 alias copy="ssh joehealey@$(echo $SSH_CLIENT | awk '{ print $1 }') pbcopy"
 
+# Watch for processes to finish and send a notification.
+# Uses the process_watcher.py script from https://github.com/arlowhite/process-watcher.git
+# (currently symlinked in to PATH as process_watcher
+
+sentinel(){
+# $1 is the PID to watch
+if [ -z ${GMAIL+x} ] || [ -z ${GPASSWORD+x} ]; then
+ source ~/repos/sentry/credentials
+fi
+nohup sentry --to jrj.healey@gmail.com -p $1 >/dev/null 2>&1 &
+}
+
 # Function to return the local machine IP for scp etc.
 client(){
 echo $SSH_CLIENT | awk '{ print $1 }'
@@ -44,6 +56,14 @@ doublestrip(){
 [[ $1 =~ ^.*/(.*)\. ]] && echo "${BASH_REMATCH[1]}"
 }
 
+# Test 2 files for identical md5sums (returns True if equivalent)
+equivalent(){
+if [[ $(md5sum $1 | cut -d ' ' -f1) == $(md5sum $2 | cut -d ' ' -f1) ]] ; then
+  echo "True"
+else
+  echo "False"
+fi
+}
 
 # Colourise alternating output lines (useful for demarcating wrapped text)
 colourit(){
@@ -233,8 +253,18 @@ awk -v n=$2 'BEGIN {n_seq=0;} /^>/ {if(n_seq%n==0){file=sprintf("myseq%d.fa",n_s
 
 # Linearise a single or multifasta file to make it easier to work on
 linearisefa(){
-awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' < $1
+# An awk option:
+# awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' < $1
+while read line ; do
+  if [ "${line:0:1}" == ">" ]; then
+    echo -e "\n"$line
+  else
+    echo $line | tr -d '\n'
+  fi
+ done < $1
 }
+
+
 
 # Undo a linearisation operation (assume line width 80, specify with $2)
 wrapfa(){
@@ -287,4 +317,13 @@ fi
 # Fastq to fasta
 fq2fa(){
 cat $1 | sed -n '1~4s/^@/>/p;2~4p'
+}
+
+# Quickly colour nucleotides of a fasta (and the header at the moment till I fix it)
+# $1 is the file
+quickcolor(){
+ sed -e "s/A/$(tput setaf 1)A$(tput sgr0)/g" \
+     -e "s/T/$(tput setaf 2)T$(tput sgr0)/g" \
+     -e "s/C/$(tput setaf 3)C$(tput sgr0)/g" \
+     -e "s/G/$(tput setaf 4)G$(tput sgr0)/g" $1 | cat
 }
