@@ -20,6 +20,11 @@ client(){
 echo $SSH_CLIENT | awk '{ print $1 }'
 }
 
+paraprint(){
+# Print multiple files side by side at the largest width possible
+  pr -m -t -w $COLUMNS $@
+}
+
 # Extract any file extension
 Extract(){
    if [ -f $1 ] ; then
@@ -214,7 +219,6 @@ cat $1 | awk '!_[$0]++'
 }
 
 # Retain only first header line (concatenate a multifasta)
-
 fastcat(){
 cat $1 | sed -e '1!{/^>.*/d;}' | sed  ':a;N;$!ba;s/\n//2g' | sed  '1!s/.\{80\}/&\n/g'
 }
@@ -224,7 +228,7 @@ gentime (){
 date +"%d-%b-%Y"
 }
 
-# Split a multifasta (gives the sequences arbitrary names though)
+# Split a multifasta
 splitfa ()
 {
     numseqs=$(grep -c ">" $1);
@@ -264,6 +268,10 @@ while read line ; do
  done < $1
 }
 
+pylinearisefa(){
+# A python equivalent of the above
+python3 -c 'import sys;from Bio import SeqIO; [print(f">{r.id}\n{r.seq}") for r in SeqIO.parse(sys.argv[1], "fasta")];' $1
+}
 
 
 # Undo a linearisation operation (assume line width 80, specify with $2)
@@ -326,4 +334,11 @@ quickcolor(){
      -e "s/T/$(tput setaf 2)T$(tput sgr0)/g" \
      -e "s/C/$(tput setaf 3)C$(tput sgr0)/g" \
      -e "s/G/$(tput setaf 4)G$(tput sgr0)/g" $1 | cat
+}
+
+# Quick and dirty oneline convert
+pyconvert(){
+# $1 == input format
+# $2 == output format
+python -c "import sys; from Bio import SeqIO; SeqIO.convert(sys.stdin, sys.argv[1], sys.stdout, sys.argv[2]);" "$1" "$2"
 }
