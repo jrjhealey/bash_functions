@@ -2,7 +2,9 @@
 
 # Alias to copy the remote STDOUT to the clients clipboard (OSX only)
 alias copy="ssh joehealey@$(echo $SSH_CLIENT | awk '{ print $1 }') pbcopy"
+alias jj="java -jar"
 
+alias trim="cut -c1-$(stty size </dev/tty | cut -d' ' -f2)"
 # Watch for processes to finish and send a notification.
 # Uses the process_watcher.py script from https://github.com/arlowhite/process-watcher.git
 # (currently symlinked in to PATH as process_watcher
@@ -18,11 +20,6 @@ nohup sentry --to jrj.healey@gmail.com -p $1 >/dev/null 2>&1 &
 # Function to return the local machine IP for scp etc.
 client(){
 echo $SSH_CLIENT | awk '{ print $1 }'
-}
-
-paraprint(){
-# Print multiple files side by side at the largest width possible
-  pr -m -t -w $COLUMNS $@
 }
 
 # Extract any file extension
@@ -101,7 +98,7 @@ mvg(){
 # Pretty print tabular files with unequal length cells
 prettytab(){
 for i in "$@" ; do
- column -t -s $'\t' -n "$i"
+ column -t -s$'\t' -n "$i"
 done
 }
 # Use this function with find a lot, so make sure the function is available to subshells
@@ -136,14 +133,14 @@ dush(){
 ends(){
 if [ "$2" == "" ]; then
   head $1
-  echo "-----"
+  echo >&2 "-----"
   tail $1
 elif [ "$2" != "" ] ; then
   head -"${2}" $1
-  echo "-----"
+  echo >&2 "-----"
   tail -"${2}" $1
 else
- echo "Parameter not recognised"
+ echo "Invalid choice of lines"
 fi
 }
 
@@ -175,9 +172,12 @@ fullpast(){
 
 # Print N random lines from a file. $1 is the file, $2 is N
 randlines(){
-for ((i=0;i<"$2";i++)) ; do
- perl -e 'srand; rand($.) < 1 && ($line = $_) while <>; print $line;' $1
-done
+ if [ -z $2 ] ; then
+   lines=10
+ else
+   lines=$2
+ fi
+ shuf -n "$lines" < $1
 }
 
 # Quick download
@@ -208,10 +208,9 @@ headers(){
 # Print all fasta sequence lengths (will print header followed by length) Works for multifa too
 falens(){
 for i in "$@" ; do
-awk '/^>/ {if (seqlen){print seqlen}; print ;seqlen=0;next; } { seqlen += length($0)}END{print seqlen}' "$i"
+ awk '/^>/ {if (seqlen){print seqlen}; print ;seqlen=0;next; } { seqlen += length($0)}END{print seqlen}' "$i"
 done
 }
-
 
 # Remove duplicate fasta headers
 dedupe(){
@@ -219,6 +218,7 @@ cat $1 | awk '!_[$0]++'
 }
 
 # Retain only first header line (concatenate a multifasta)
+
 fastcat(){
 cat $1 | sed -e '1!{/^>.*/d;}' | sed  ':a;N;$!ba;s/\n//2g' | sed  '1!s/.\{80\}/&\n/g'
 }
@@ -228,7 +228,7 @@ gentime (){
 date +"%d-%b-%Y"
 }
 
-# Split a multifasta
+# Split a multifasta (gives the sequences arbitrary names though)
 splitfa ()
 {
     numseqs=$(grep -c ">" $1);
@@ -259,13 +259,17 @@ awk -v n=$2 'BEGIN {n_seq=0;} /^>/ {if(n_seq%n==0){file=sprintf("myseq%d.fa",n_s
 linearisefa(){
 # An awk option:
 # awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' < $1
+# One liner equivalent:
+# while read line ; do if [ "${line:0:1}" == ">" ]; then echo -e "\n"$line ; else  echo $line | tr -d '\n' ; fi ; done < $1 | tail -n+2
+
 while read line ; do
   if [ "${line:0:1}" == ">" ]; then
     echo -e "\n"$line
   else
     echo $line | tr -d '\n'
   fi
- done < $1
+ done < $1 | tail -n+2
+ # tail needed to remove the initial blank line
 }
 
 pylinearisefa(){
@@ -327,18 +331,22 @@ fq2fa(){
 cat $1 | sed -n '1~4s/^@/>/p;2~4p'
 }
 
-# Quickly colour nucleotides of a fasta (and the header at the moment till I fix it)
-# $1 is the file
 quickcolor(){
- sed -e "s/A/$(tput setaf 1)A$(tput sgr0)/g" \
-     -e "s/T/$(tput setaf 2)T$(tput sgr0)/g" \
-     -e "s/C/$(tput setaf 3)C$(tput sgr0)/g" \
-     -e "s/G/$(tput setaf 4)G$(tput sgr0)/g" $1 | cat
+ for i in "$@" ; do
+  sed -e "/^>/!s/A/$(tput setaf 1)A$(tput sgr0)/g" \
+      -e "/^>/!s/T/$(tput setaf 2)T$(tput sgr0)/g" \
+      -e "/^>/!s/C/$(tput setaf 3)C$(tput sgr0)/g" \
+      -e "/^>/!s/G/$(tput setaf 4)G$(tput sgr0)/g" "${i}" | cat
+ done
 }
-
 # Quick and dirty oneline convert
 pyconvert(){
 # $1 == input format
 # $2 == output format
 python -c "import sys; from Bio import SeqIO; SeqIO.convert(sys.stdin, sys.argv[1], sys.stdout, sys.argv[2]);" "$1" "$2"
+}
+
+pyindexfa(){
+python3 -c 'import sys;from Bio import SeqIO; [print(f">{rec.description}\n{rec.seq}") for i, rec in enumerate(SeqIO.parse(sys.argv[1],"fasta")) if i == int(sys.argv[2])-1 ];' "$1" "$2"
+
 }
