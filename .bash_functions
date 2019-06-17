@@ -187,7 +187,7 @@ for i in "$@" ; do
 done
 }
 
-# Collapse all whitespace in a file to a single tab per occurence 
+# Collapse all whitespace in a file to a single tab per occurence
 ws2tab(){
 for i in "$@" ; do
  perl -p -e 's/ +/\t/g' $i
