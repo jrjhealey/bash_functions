@@ -350,3 +350,8 @@ pyindexfa(){
 python3 -c 'import sys;from Bio import SeqIO; [print(f">{rec.description}\n{rec.seq}") for i, rec in enumerate(SeqIO.parse(sys.argv[1],"fasta")) if i == int(sys.argv[2])-1 ];' "$1" "$2"
 
 }
+
+pypdb2fasta(){
+wget -O - https://files.rcsb.org/download/${1}.pdb 2>/dev/null |\
+python -c "import sys; from Bio import SeqIO; SeqIO.convert(sys.stdin, 'pdb-atom', sys.stdout, 'fasta')"
+}
